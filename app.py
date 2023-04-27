@@ -30,6 +30,7 @@ with st.sidebar:
     with st.expander("Configuration", expanded=True):
         timeout = st.number_input("Timeout", value=30, help="Search timeout in seconds.")
         index = st.text_input("Index", value="patents", help="Index to search in.")
+        fuzziness = st.number_input("Fuzziness", value=0, help="Fuzziness level for matching.", min_value=0, max_value=2)
 
     with st.expander("Search Fields (comma separated):", expanded=False):
         fields = parse_csv(st.text_input("Search Fields", value="assignees.assignee_organization", help="Fields to search."))
@@ -47,7 +48,7 @@ with st.spinner('Searching...'):
             st.write("**Please enter an API Key.**")
             st.stop()
         else:
-            results = es.search(user_query, index, fields, agg_fields=agg_fields, source=source, agg_source=agg_source, timeout=timeout, size=0)  # Setting size=0 to only return aggregations
+            results = es.search(user_query, index, fields, agg_fields=agg_fields, source=source, agg_source=agg_source, timeout=timeout, size=0, fuzziness=fuzziness)  # Setting size=0 to only return aggregations
     except Exception as e:
         st.error("Could not complete the search!", icon="🚨")
         st.error(e)
