@@ -24,14 +24,14 @@ def parse_results(results):
 with st.sidebar:
 
     with st.expander("ElasticSearch Connection", expanded=True):
-        host = st.text_input("Host", value="https://patentsview-production.es.us-east-1.aws.found.io", label_visibility="collapsed")
+        host = st.text_input("Host", value="https://patentsview-production.es.us-east-1.aws.found.io")
         api_key = st.text_input("API Key", value="", help="API Key for authentication.")
     
     with st.expander("Configuration", expanded=True):
         timeout = st.number_input("Timeout", value=30, help="Search timeout in seconds.")
         index = st.text_input("Index", value="patents", help="Index to search in.")
 
-    with st.expander("Search Fields (comma separated):", expanded=True):
+    with st.expander("Search Fields (comma separated):", expanded=False):
         fields = parse_csv(st.text_input("Search Fields", value="assignees.assignee_organization", help="Fields to search."))
         source = parse_csv(st.text_input("Source", value="", help="Fields to return in the response."))
         agg_fields = parse_csv(st.text_input("Aggregation Fields", value="assignees.assignee_id", help="Fields to aggregate on."))
