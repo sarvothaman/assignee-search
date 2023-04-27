@@ -41,30 +41,31 @@ with st.sidebar:
 es = ElasticSearch(host, api_key=api_key)
 user_query = st.text_input("Search:", value="Lutron Electronics", disabled=api_key=="")
 
-try:
-    if api_key == "":
-        st.write("**Please enter an API Key.**")
-        st.stop()
-    else:
-        results = es.search(user_query, index, fields, agg_fields=agg_fields, source=source, agg_source=agg_source, timeout=timeout, size=0)  # Setting size=0 to only return aggregations
-except Exception as e:
-    st.error("Could not complete the search!", icon="🚨")
-    st.error(e)
-    st.exit()
+with st.spinner('Searching...'):
+    try:
+        if api_key == "":
+            st.write("**Please enter an API Key.**")
+            st.stop()
+        else:
+            results = es.search(user_query, index, fields, agg_fields=agg_fields, source=source, agg_source=agg_source, timeout=timeout, size=0)  # Setting size=0 to only return aggregations
+    except Exception as e:
+        st.error("Could not complete the search!", icon="🚨")
+        st.error(e)
+        st.exit()
 
-# Parse results into dataframe
-df = parse_results(results)
+    # Parse results into dataframe
+    df = parse_results(results)
 
-# Add editable column to indicate selection option
-df.insert(0, "Select", False)
-edited_df = st.experimental_data_editor(df)
+    # Add editable column to indicate selection option
+    df.insert(0, "Select", False)
+    edited_df = st.experimental_data_editor(df)
 
-# Search statistics
-entity_count = len(results["aggregations"]["assignees.assignee_id"]["assignees.assignee_id_inner"]["buckets"])
-record_count = results["aggregations"]["assignees.assignee_id"]["doc_count"]
-st.write(f"Found {entity_count} disambiguated assignees with {record_count} associated records.")
+    # Search statistics
+    entity_count = len(results["aggregations"]["assignees.assignee_id"]["assignees.assignee_id_inner"]["buckets"])
+    record_count = results["aggregations"]["assignees.assignee_id"]["doc_count"]
+    st.write(f"Found {entity_count} disambiguated assignees with {record_count} associated records.")
 
 
-copy = st.button("Copy Selected Assignee IDs to Clipboard", type="primary")
-if copy:
-    edited_df[edited_df["Select"] == True]["assignee_id"].to_clipboard(index=False, header=False, sep=",")
+    copy = st.button("Copy Selected Assignee IDs to Clipboard", type="primary")
+    if copy:
+        edited_df[edited_df["Select"] == True]["assignee_id"].to_clipboard(index=False, header=False, sep=",")
