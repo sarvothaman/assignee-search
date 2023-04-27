@@ -25,7 +25,7 @@ with st.sidebar:
 
     with st.expander("ElasticSearch Connection", expanded=True):
         host = st.text_input("Host", value="https://patentsview-production.es.us-east-1.aws.found.io", label_visibility="collapsed")
-        api_key = st.text_input("API Key", value="Your API Key", help="API Key for authentication.")
+        api_key = st.text_input("API Key", value="", help="API Key for authentication.")
     
     with st.expander("Configuration", expanded=True):
         timeout = st.number_input("Timeout", value=30, help="Search timeout in seconds.")
@@ -39,12 +39,16 @@ with st.sidebar:
 
 
 es = ElasticSearch(host, api_key=api_key)
-user_query = st.text_input("Search:", value="Lutron Electronics")
+user_query = st.text_input("Search:", value="Lutron Electronics", disabled=api_key=="")
 
 try:
-    results = es.search(user_query, index, fields, agg_fields=agg_fields, source=source, agg_source=agg_source, timeout=timeout, size=0)  # Setting size=0 to only return aggregations
+    if api_key == "":
+        st.write("**Please enter an API Key.**")
+        st.stop()
+    else:
+        results = es.search(user_query, index, fields, agg_fields=agg_fields, source=source, agg_source=agg_source, timeout=timeout, size=0)  # Setting size=0 to only return aggregations
 except Exception as e:
-    st.error("Could not Complete the search! Please try again. You may need to increase timeout value.", icon="🚨")
+    st.error("Could not complete the search!", icon="🚨")
     st.error(e)
     st.exit()
 
