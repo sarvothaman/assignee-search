@@ -1,6 +1,9 @@
 import streamlit as st
 from er_evaluation.search import ElasticSearch
 import pandas as pd
+from sqlalchemy import create_engine, text
+import tempfile
+
 
 """
 ## Disambiguated Assignee Search
@@ -23,6 +26,12 @@ def parse_results(results):
 
 with st.sidebar:
 
+    with st.expander("SQL Connection", expanded=True):
+        sql_host = st.text_input("Host", value="patentsview-ingest-production.cckzcdkkfzqo.us-east-1.rds.amazonaws.com")
+        sql_user = st.text_input("User", value="sengineer")
+        sql_pwd = st.text_input("Password")
+        db_name = st.text_input("DB Name", value="algorithms_assignee_labeling")
+
     with st.expander("ElasticSearch Connection", expanded=True):
         host = st.text_input("Host", value="https://patentsview-production.es.us-east-1.aws.found.io")
         api_key = st.text_input("API Key", value="", help="API Key for authentication.")
@@ -34,7 +43,6 @@ with st.sidebar:
         col_select_placeholder = st.empty()
 
     with st.expander("Search Fields (comma separated):", expanded=False):
-        #fields = parse_csv(st.text_input("Search Fields", value="assignees.assignee_organization", help="Fields to search."))
         source = parse_csv(st.text_input("Source", value="", help="Fields to return in the response."))
         agg_fields = parse_csv(st.text_input("Aggregation Fields", value="assignees.assignee_id", help="Fields to aggregate on."))
         agg_source = parse_csv(st.text_input("Aggregation Source", value="assignees", help="Fields to return for each top hit in the aggregations."))
@@ -60,6 +68,7 @@ with st.spinner('Searching...'):
             st.stop()
         else:
             results = search(user_query, index, fields, agg_fields=agg_fields, source=source, agg_source=agg_source, timeout=timeout, size=0, fuzziness=fuzziness)
+            st.json(results)
     except Exception as e:
         st.error("Could not complete the search!", icon="🚨")
         st.error(e)
@@ -68,7 +77,6 @@ with st.spinner('Searching...'):
     # Parse results into dataframe
     df = parse_results(results)
     cols = df.columns
-    print(cols.values)
     default_cols = [
         'assignee_organization', 
         'assignee_individual_name_last',
@@ -98,11 +106,22 @@ with st.spinner('Searching...'):
 
     disambiguated_assignee_IDs = selected_df["assignee_id"]
 
-    mentions_table = selected_df #data_from_disambiguated_IDs(disambiguated_assignee_IDs)
+    def disambiguated_assignees_data(assignee_disambiguation_IDs: list[str], connection):
+        id_list = '("' + '","'.join(assignee_disambiguation_IDs) + '")'
+        query = f"SELECT * FROM algorithms_assignee_labeling.assignee a WHERE a.disambiguated_assignee_id IN {id_list}"
+        result = connection.execute(text(query)).fetchall()
+        df = pd.DataFrame(result)
+        return df
+    
+    engine = create_engine(f"mysql+pymysql://{sql_user}:{sql_pwd}@{sql_host}/{db_name}?charset=utf8mb4")
+    with engine.connect() as connection:
+        mentions_table = disambiguated_assignees_data(disambiguated_assignee_IDs.values, connection)
+        st.write(mentions_table)
 
-    filename = st.text_input("Filename", value="output1.xlsx")
-    download_btn = st.button("Download")
-    if download_btn:
-        mentions_excel = mentions_table.to_excel(filename)
-        st.info("Successfully downloaded file.")
-
+    filename = st.text_input("Filename", "mentions_table.xlsx")
+    with tempfile.NamedTemporaryFile(suffix=".xlsx") as temp:
+        # TODO: Add top row that has information about the mention ID we're trying to match against. 
+        mentions_table.to_excel(temp.name, index=False)
+        with open(temp.name, "rb") as file:
+            bytes_data = file.read()
+            st.download_button(label="Download", data=bytes_data, file_name=filename, mime="application/vnd.ms-excel")
