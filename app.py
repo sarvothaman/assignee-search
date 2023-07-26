@@ -56,7 +56,6 @@ with st.spinner('Searching...'):
             st.stop()
         else:
             results = es.search(user_query, index, fields, agg_fields=agg_fields, source=source, agg_source=agg_source, timeout=timeout, size=0, fuzziness=fuzziness)  # Setting size=0 to only return aggregations
-            st.json(results)
     except Exception as e:
         st.error("Could not complete the search!", icon="🚨")
         st.error(e)
