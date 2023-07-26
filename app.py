@@ -40,6 +40,10 @@ with st.sidebar:
         agg_source = parse_csv(st.text_input("Aggregation Source", value="assignees", help="Fields to return for each top hit in the aggregations."))
 
 es = ElasticSearch(host, api_key=api_key)
+@st.cache_data
+def search(user_query, index, fields, agg_fields, source, agg_source, timeout, size, fuzziness):
+    return es.search(user_query, index, fields, agg_fields=agg_fields, source=source, agg_source=agg_source, timeout=timeout, size=0, fuzziness=fuzziness)
+
 user_query = st.text_input("Search:", value="Lutron Electronics", disabled=api_key=="")
 field_select = st.radio("Fields:", ["Organization", "First Name", "Last Name"], horizontal=True, label_visibility="collapsed")
 if field_select == "Organization":
@@ -55,7 +59,7 @@ with st.spinner('Searching...'):
             st.write("**Please enter an API Key.**")
             st.stop()
         else:
-            results = es.search(user_query, index, fields, agg_fields=agg_fields, source=source, agg_source=agg_source, timeout=timeout, size=0, fuzziness=fuzziness)  # Setting size=0 to only return aggregations
+            results = search(user_query, index, fields, agg_fields=agg_fields, source=source, agg_source=agg_source, timeout=timeout, size=0, fuzziness=fuzziness)
     except Exception as e:
         st.error("Could not complete the search!", icon="🚨")
         st.error(e)
