@@ -34,14 +34,20 @@ with st.sidebar:
         col_select_placeholder = st.empty()
 
     with st.expander("Search Fields (comma separated):", expanded=False):
-        fields = parse_csv(st.text_input("Search Fields", value="assignees.assignee_organization", help="Fields to search."))
+        #fields = parse_csv(st.text_input("Search Fields", value="assignees.assignee_organization", help="Fields to search."))
         source = parse_csv(st.text_input("Source", value="", help="Fields to return in the response."))
         agg_fields = parse_csv(st.text_input("Aggregation Fields", value="assignees.assignee_id", help="Fields to aggregate on."))
         agg_source = parse_csv(st.text_input("Aggregation Source", value="assignees", help="Fields to return for each top hit in the aggregations."))
 
-
 es = ElasticSearch(host, api_key=api_key)
 user_query = st.text_input("Search:", value="Lutron Electronics", disabled=api_key=="")
+field_select = st.radio("Fields:", ["Organization", "First Name", "Last Name"], horizontal=True, label_visibility="collapsed")
+if field_select == "Organization":
+    fields = ["assignees.assignee_organization"]
+elif field_select == "First Name":
+    fields = ["assignees.assignee_individual_name_first"]
+elif field_select == "Last Name":
+    fields = ["assignees.assignee_individual_name_last"]
 
 with st.spinner('Searching...'):
     try:
@@ -50,6 +56,7 @@ with st.spinner('Searching...'):
             st.stop()
         else:
             results = es.search(user_query, index, fields, agg_fields=agg_fields, source=source, agg_source=agg_source, timeout=timeout, size=0, fuzziness=fuzziness)  # Setting size=0 to only return aggregations
+            st.json(results)
     except Exception as e:
         st.error("Could not complete the search!", icon="🚨")
         st.error(e)
