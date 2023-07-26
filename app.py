@@ -93,4 +93,16 @@ with st.spinner('Searching...'):
 
     st.write("Selected Assignee IDs:")
 
-    st.write((df[edited_df["Select"] == True][["assignee_id", "assignee_organization", 'assignee_individual_name_last', 'assignee_individual_name_first',]]))
+    selected_df = df[edited_df["Select"] == True][["assignee_id", "assignee_organization", 'assignee_individual_name_last', 'assignee_individual_name_first',]]
+    st.write(selected_df)
+
+    disambiguated_assignee_IDs = selected_df["assignee_id"]
+
+    mentions_table = selected_df #data_from_disambiguated_IDs(disambiguated_assignee_IDs)
+
+    filename = st.text_input("Filename", value="output1.xlsx")
+    download_btn = st.button("Download")
+    if download_btn:
+        mentions_excel = mentions_table.to_excel(filename)
+        st.info("Successfully downloaded file.")
+

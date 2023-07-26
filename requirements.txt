@@ -1,3 +1,4 @@
 streamlit
 pandas
 git+https://github.com/OlivierBinette/er-evaluation.git
+openpyxl
