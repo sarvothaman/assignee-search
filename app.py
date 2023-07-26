@@ -30,7 +30,8 @@ with st.sidebar:
     with st.expander("Configuration", expanded=True):
         timeout = st.number_input("Timeout", value=30, help="Search timeout in seconds.")
         index = st.text_input("Index", value="patents", help="Index to search in.")
-        fuzziness = st.number_input("Fuzziness", value=0, help="Fuzziness level for matching.", min_value=0, max_value=2)
+        fuzziness = st.number_input("Fuzziness", value=2, help="Fuzziness level for matching.", min_value=0, max_value=2)
+        col_select_placeholder = st.empty()
 
     with st.expander("Search Fields (comma separated):", expanded=False):
         fields = parse_csv(st.text_input("Search Fields", value="assignees.assignee_organization", help="Fields to search."))
@@ -56,17 +57,30 @@ with st.spinner('Searching...'):
 
     # Parse results into dataframe
     df = parse_results(results)
+    cols = df.columns
+    print(cols.values)
+    default_cols = [
+        'assignee_organization', 
+        'assignee_individual_name_last',
+        'assignee_individual_name_first',
+        'assignee_country',
+        'assignee_state',
+        'assignee_city',
+        'assignee_type', 
+        'assignee_id',
+        '_score',
+    ]
+    col_select = col_select_placeholder.multiselect("Columns to display:", options=cols, default=default_cols)
 
     # Add editable column to indicate selection option
     df.insert(0, "Select", False)
-    edited_df = st.experimental_data_editor(df)
+    edited_df = st.data_editor(df[["Select"]+col_select])
 
     # Search statistics
     entity_count = len(results["aggregations"]["assignees.assignee_id"]["assignees.assignee_id_inner"]["buckets"])
     record_count = results["aggregations"]["assignees.assignee_id"]["doc_count"]
     st.write(f"Found {entity_count} disambiguated assignees with {record_count} associated records.")
 
+    st.write("Selected Assignee IDs:")
 
-    copy = st.button("Copy Selected Assignee IDs to Clipboard", type="primary")
-    if copy:
-        edited_df[edited_df["Select"] == True]["assignee_id"].to_clipboard(index=False, header=False, sep=",")
+    st.write((df[edited_df["Select"] == True][["assignee_id", "assignee_organization"]]))
