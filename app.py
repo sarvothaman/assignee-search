@@ -89,4 +89,4 @@ with st.spinner('Searching...'):
 
     st.write("Selected Assignee IDs:")
 
-    st.write((df[edited_df["Select"] == True][["assignee_id", "assignee_organization"]]))
+    st.write((df[edited_df["Select"] == True][["assignee_id", "assignee_organization", 'assignee_individual_name_last', 'assignee_individual_name_first',]]))
